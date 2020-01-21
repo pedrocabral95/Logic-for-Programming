@@ -1,0 +1,358 @@
+:- consult(codigo_comum).
+
+
+% Pedro Cabral IST90767 LEIC-T LP
+
+%------------------------------------------------
+% aplica_R1_triplo(Triplo,NTriplo).
+%
+% Aplica Regra 1 a Triplo, devolve NTriplo.
+%------------------------------------------------
+aplica_R1_triplo([A,B,C],[A,B,C]):-
+	compare(=,A,1),compare(=,B,1),compare(=,C,1),!,fail;
+	compare(=,A,0),compare(=,B,0),compare(=,C,0),!,fail.
+aplica_R1_triplo([A,B,C],[X,Y,Z]):-
+	compare(=,A,1),compare(=,B,1), X = 1 , Y = 1 , Z = 0;
+	compare(=,A,1),compare(=,C,1), X = 1 , Y = 0 , Z = 1;
+	compare(=,B,0),compare(=,C,0), X = 1 , Y = 0 , Z = 0;
+	compare(=,A,0),compare(=,B,0), X = 0 , Y = 0 , Z = 1;
+	compare(=,A,0),compare(=,C,0), X = 0 , Y = 1 , Z = 0;
+	compare(=,B,1),compare(=,C,1), X = 0 , Y = 1, Z = 1.
+aplica_R1_triplo([A,B,C],[A,B,C]). 
+
+
+%------------------------------------------------------
+% aplica_R1_fila_aux(Fila,NFila).
+%
+% Aplica Regra 1 ah fila (linha ou coluna) uma soh vez.
+% devolve NFila.
+%------------------------------------------------------
+aplica_R1_fila_aux([A,B,C],Resto):- !, 
+	aplica_R1_triplo([A,B,C], Resto).
+aplica_R1_fila_aux([A,B,C|Resto], [N1|NResto]):-
+	aplica_R1_triplo([A,B,C],[N1,N2,N3]), 
+	aplica_R1_fila_aux([N2,N3|Resto],NResto).
+%------------------------------------------------------
+% Predicado auxiliar a aplica_R1_fila(Fila,NFila).
+% contador(Lista,C,C1)
+% Limita o predicado ate ao tamanho da fila!
+%------------------------------------------------------
+contador([],_,_).
+contador(Lista,C,C1) :-
+	length(Lista,LLista),
+	C1 is C + 1,
+	C =< LLista.
+
+%------------------------------------------------------
+% 	Filtro para preencher Coluna/Linha
+%------------------------------------------------------
+zero(X) :- nonvar(X) ,0 is X.
+um(X) :- nonvar(X) ,1 is X.
+
+%--------------------------------------------------------
+% Predicado auxiliar a aplica_R1_fila(Fila,NFila).
+% percorre(Lista,C,NLista)
+% Percorre a fila recursivamente com auxilio do contador
+% Limita o predicado ate ao tamanho da fila!
+%--------------------------------------------------------
+percorre([],_,[]).
+percorre(Lista,C,NLista) :- 
+	aplica_R1_fila_aux(Lista,NLista),
+	(contador(Lista,C,C1),
+	percorre(Lista,C1,NLista);
+	percorre([],_,[])).
+%------------------------------------------------------
+% aplica_R1_fila_aux(Fila,NFila).
+%
+% Aplica Regra 1 ah fila (linha ou coluna) repetidamente.
+% devolve NFila.
+%------------------------------------------------------
+aplica_R1_fila([],[]).
+
+aplica_R1_fila(Lista,NLista) :- 
+	Cont is 0,
+	percorre(Lista,Cont,NLista).
+
+%------------------------------------------------------
+% Predicado auxiliar a aplica_R2_fila(Fila,NFila).
+% mete_valor(Fila,C,NFila)
+% mete valor se N na Lista nao for inteiro!
+% Retorna NFila
+%------------------------------------------------------
+mete_valor([],[],_).
+
+mete_valor([A|Resto],[N1|NResto],N):-
+	 integer(A),
+	 N1 is A,
+	 mete_valor(Resto,NResto,N).
+
+mete_valor([A|Resto],[N1|NResto],N):-
+	 var(A),
+	 N1 is N,
+	 mete_valor(Resto,NResto,N).
+
+
+%------------------------------------------------------
+% aplica_R2_fila(Fila,NFila).
+%
+% Aplica Regra 2 ah fila (linha ou coluna).
+% devolve NFila.
+%------------------------------------------------------
+aplica_R2_fila([],[]).
+aplica_R2_fila(Fila,_):-
+	length(Fila,LFila),
+	Max is LFila div 2,
+	include(um,Fila,U),
+	length(U,LU),
+	Max < LU,!,fail.
+aplica_R2_fila(Fila,_):-
+	length(Fila,LFila),
+	Max is LFila div 2,
+	include(zero,Fila,Z),
+	length(Z,ZU),
+	Max < ZU,!,fail.
+aplica_R2_fila(Fila,NFila):- 
+	length(Fila,LFila),
+	Max is LFila div 2,
+	include(um,Fila,U),
+	length(U,LU),
+	compare(=,LU,Max),
+	mete_valor(Fila,NFila,0).
+aplica_R2_fila(Fila,NFila):- 
+	length(Fila,LFila),
+	Max is LFila div 2, 
+	include(zero,Fila,Z),
+	length(Z,ZU),
+	compare(=,ZU,Max),
+	mete_valor(Fila,NFila,1).
+aplica_R2_fila(Fila,Fila).
+
+%------------------------------------------------------
+% aplica_R1_R2_fila(Fila,NFila).
+%
+% Aplica Regra 1 e Regra 2 ah fila (linha ou coluna).
+% devolve NFila.
+%------------------------------------------------------
+aplica_R1_R2_fila([],[]).    
+aplica_R1_R2_fila(Fila,NFila):-
+	aplica_R1_fila(Fila,Fila_aux),!,
+	aplica_R2_fila(Fila_aux,NFila).
+
+%------------------------------------------------------
+% aplica_R1_R2_puzzle(Puzzle,NPuzzle).
+%
+% Aplica o predicado aplica_R1_R2_fila/2 ao puzzle
+% Primeiro as linha e depois as colunas de puzzle.
+% Devolve NPuzzle.
+%------------------------------------------------------
+aplica_R1_R2_puzzle([],[]).
+aplica_R1_R2_puzzle(Puzzle,NPuzzle):-
+	faz_R1_R2(Puzzle,NPuzzle_aux),
+	mat_transposta(NPuzzle_aux,Puzzle_aux),
+	faz_R1_R2(Puzzle_aux,NPuzzle_out),
+	mat_transposta(NPuzzle_out,NPuzzle).
+%------------------------------------------------------
+% faz_R1_R2(Fila,NFila) - Auxiliar a aplica_R1_R2_puzzle 
+% Aplica R1 e R2 ah fila!
+%------------------------------------------------------
+faz_R1_R2([],[]).
+faz_R1_R2([Lista|RLista],[NLista|RNLista]) :-
+	aplica_R1_R2_fila(Lista,NLista),
+	faz_R1_R2(RLista,RNLista).
+
+%------------------------------------------------------
+% inicializa(Puzzle,NPuzzle).
+%
+% Inicializa o Puzzle respeitando as regras.
+% devolve NPuzzle.
+%------------------------------------------------------
+inicializa([],[]).
+inicializa(Puzzle,NPuzzle):-
+	aplica_R1_R2_puzzle(Puzzle,NPuzzle_1),
+	aplica_R1_R2_puzzle(NPuzzle_1,NPuzzle_2),
+	aplica_R1_R2_puzzle(NPuzzle_2,NPuzzle_3),
+	aplica_R1_R2_puzzle(NPuzzle_3,NPuzzle_4),
+	aplica_R1_R2_puzzle(NPuzzle_4,NPuzzle).
+
+%------------------------------------------------------
+% igual - verifica se A eh B!
+%------------------------------------------------------
+igual([],[]).
+igual([PInp|RInp],[PNul|RNul]) :- 
+	PInp = PNul,
+	igual(RInp,RNul).
+%------------------------------------------------------
+% valido - verfifica se eh (elemento) inteiro
+%------------------------------------------------------
+valido([]).
+valido([PInp|RInp]):-
+	integer(PInp),
+	valido(RInp).
+%------------------------------------------------------
+% Auxiliar a verifica_R3
+%
+%	Verifica se Fila eh valida, e se nao sao iguais
+%------------------------------------------------------
+ve_R3(_,[]).
+ve_R3(P,[NR|NResto]):-
+	valido(P),valido(NR),
+	not(igual(P,NR)),
+	ve_R3(P,NResto).
+ve_R3(P,[NR|NResto]):-
+	valido(P),not(valido(NR)),
+	ve_R3(P,NResto).  
+ve_R3(P,_):-
+	not(valido(P)).
+%------------------------------------------------------
+%	aux_verifica_R3(Puzzle)
+%	Recebe Puzzle e verifica se respeita regra 3
+%
+%------------------------------------------------------
+aux_verifica_R3([]).
+aux_verifica_R3([P|Resto]):-
+	ve_R3(P,Resto),
+	aux_verifica_R3(Resto).
+%------------------------------------------------------
+%	verifica_R3(Puzzle)
+%
+%	Recebe Puzzle e verifica se respeita regra 3 com 
+%   auxilio da aux_verifica_R3!
+%------------------------------------------------------
+verifica_R3([]).
+verifica_R3(Puzzle) :- 
+	aux_verifica_R3(Puzzle),
+	mat_transposta(Puzzle,NPuzzle),
+	aux_verifica_R3(NPuzzle).
+%------------------------------------------------------
+%	processa_coordenadas(Puz,(L,C),NLPuz,NCPuz,CCmp,LCmp)
+%	Recebe Puzzle e coordenadas,
+%	obtem respetiva linha e coluna e aplica R1_R2_fila.
+%   Devolve NLPuz - resultado de aplicar R1_R2_fila ah linha
+%	Devolve NCPuz - resultado de aplicar R1_R2_fila ah coluna
+%   Devolve CCmp - coluna original
+%	Develve LCmp - linha original
+%------------------------------------------------------
+processa_coordenadas(Puz,(L,C),NLPuz,NCPuz,CCmp,LCmp):-
+	nth1(L,Puz,LCmp),
+	duplicate_term(LCmp,LPuz),
+	mat_transposta(Puz,TPuz),
+	nth1(C,TPuz,CCmp),
+	duplicate_term(CCmp,CPuz),
+	aplica_R1_R2_fila(LPuz,NLPuz),
+	aplica_R1_R2_fila(CPuz,NCPuz).
+
+
+%------------------------------------------------------
+%	processa_mudancas(Puz,(L,C),NPuz,NLPuz,LCmp,NCPuz,CCmp,DifC,DifL)
+%	Recebe Puzzle e coordenadas,
+%
+%   Devolve NLPuz - resultado de aplicar R1_R2_fila ah linha
+%	Devolve NCPuz - resultado de aplicar R1_R2_fila ah coluna
+%   Devolve CCmp - coluna original
+%	Develve LCmp - linha original
+%------------------------------------------------------
+processa_mudancas(Puz,(L,C),NPuz,NLPuz,LCmp,NCPuz,CCmp,DifC,DifL):-
+	mat_muda_linha(Puz,L,NLPuz,NPuz1),
+	mat_muda_coluna(NPuz1,C,NCPuz,NPuz),
+	length(NCPuz,Len),
+	retorna_diff(LCmp,NLPuz,LDif,Len),
+	retorna_diff(CCmp,NCPuz,CDif,Len),
+	concatena_l(L,LDif,DifL),
+	concatena_c(C,CDif,DifC).
+%------------------------------------------------------
+%	retorna_diff(L1,L2,LMud,Len)
+% 	Recebe duas lista e o seu tamanha,
+% 	Devolve uma lista com as posicoes que alteraram
+%------------------------------------------------------
+retorna_diff(L1,L2,LMud,Len):-
+	findall(X, (between(1, Len, X), nth1(X, L1, Ori), nth1(X, L2, Mud), (nonvar(Ori); nonvar(Mud)) ,Ori \== Mud), LMud).
+%------------------------------------------------------
+%	concatena_l(Coord,Dif,LCon) - Linha - 
+% 	Recebe uma coordenada e a lista de posicoes
+% 	Devolve uma lista com as posicoes que alteraram no formato (L,C)
+%------------------------------------------------------
+concatena_l(Coord,Dif,LCon):-
+	findall((Coord, El_dif), member(El_dif, Dif), LCon).
+%------------------------------------------------------
+%	concatena_l(Coord,Dif,LCon) - Coluna -
+% 	Recebe uma coordenada e a lista de posicoes
+% 	Devolve uma lista com as posicoes que alteraram no formato (L,C)
+%------------------------------------------------------
+concatena_c(Coord,Dif,LCon):-
+	findall((El_dif,Coord), member(El_dif, Dif), LCon).
+
+%-----------------------------------------------------
+% 	Auxiliar propaga_posicao(Posicoes, Puz, N_Puz)
+%	Posicoes e uma lista de posicoes
+% 	Puz e um puzzle
+% 	Devolve N_Puz e o resultado de propagar, recursivamente, 
+%	(as mudancas de) as posicoes de Posicoes.
+%----------------------------------------------------
+propaga_posicao([],P,P).
+propaga_posicao([(L,C)|PR],Puz,NPuzzle):-
+	processa_coordenadas(Puz,(L,C),LPuz,CPuz,CCmp,LCmp),
+	processa_mudancas(Puz,(L,C),NPuz,LPuz,LCmp,CPuz,CCmp,DifC,DifL),
+	append(DifC,DifL,PR_aux),
+	append(PR,PR_aux,PR_rec),
+	propaga_posicao(PR_rec,NPuz,NPuzzle).
+
+%-----------------------------------------------------
+% 	propaga_posicoes(Posicoes, Puz, N_Puz)
+%	Posicoes eh uma lista de posicoes
+% 	Puz eh um puzzle
+% 	Devolve N_Puz eh o resultado de propagar, recursivamente, 
+%	(as mudancas de) as posicoes de Posicoes.
+%----------------------------------------------------
+propaga_posicoes(LPosicoes,Puz,NPuzzle):-
+	propaga_posicao(LPosicoes,Puz,NPuzzle).
+
+%--------------------------------------------------------
+% resolve(Puz,Sol) 
+%  
+%	Recebe um puzzle e devolve possiveis solucoes
+% 	Aplicando os predicados desenvolvidos
+%---------------------------------------------------------------
+resolve([],[]).
+resolve(Puzzle,Sol) :- 
+	inicializa(Puzzle,NPuzzle),
+	procesa_espacos(NPuzzle,LMud),
+	propaga_posicoes(LMud,NPuzzle,Sol),
+	verifica_R3(Sol).
+
+%--------------------------------------------------------
+% procesa_espacos(NPuzzle,LMud) - auxiliar ao predicado resolve
+%  
+%	Recebe um puzzle e devolve as coordenadas a alterar!
+%---------------------------------------------------------------
+procesa_espacos(NPuzzle,LMud):-
+	C is 1,
+	length(NPuzzle,L),
+	obtem_lista_coord(NPuzzle,C,LMud_f,L),
+	flatten(LMud_f,LMud).
+%---------------------------------------------------------------
+% obtem_lista_coord([P|R],C,[P1|R1],Len)
+% 										auxiliar a procesa_espacos
+%  
+%	Recebe um puzzle, linha e tamanho do puzzle
+% e devolve uma lista de coordenadas a alterar!
+%---------------------------------------------------------------
+obtem_lista_coord([],_,[],_).
+obtem_lista_coord([P|R],C,[P1|R1],Len):-
+  obtem_coordenadas(P,C,P1),
+  C1 is C + 1,
+  C =< Len,
+  obtem_lista_coord(R,C1,R1,Len).
+%--------------------------------------------------------
+% obtem_coordenadas(Fila,C,LMud)
+% 										auxiliar a obtem_lista_coord
+%  
+%	Recebe uma fila e devolve a lista de coordenadas
+% 	a alterar na respetiva linha!
+%--------------------------------------------------------------- 
+obtem_coordenadas(Fila,C,LMud):-
+	duplicate_term(Fila,CFila),
+  mete_valor(CFila,NFila,2),
+  length(CFila,LCfila),
+  retorna_diff(CFila,NFila,LMu,LCfila),
+  concatena_l(C,LMu,LMud).
+
